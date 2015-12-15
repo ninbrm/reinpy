@@ -5,4 +5,4 @@ run in shell:
 jupyter notebook
 ```
 
-view [here](http://nbviewer.ipython.org/){:target="_blank"}
+view [here](http://nbviewer.ipython.org/)
