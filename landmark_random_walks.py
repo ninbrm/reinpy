@@ -3,6 +3,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from math import sqrt
+import scipy.sparse as ss
 from scipy.sparse.csgraph import dijkstra
 from grid_manager import Grid
 
@@ -97,7 +98,8 @@ class Landmarks:
 		affinities = self.similarities_L2all[landmark_id, :]
 		self.G.plot(affinities)
 
-	def similarities_to_landmarks(self, min_affinity=0, affinity_to_cost=None, distance_transformation=None, distance_to_similarity=None):
+	def similarities_to_landmarks(self, min_affinity=0, affinity_to_cost=None, distance_measure='least_cost',
+		                          beta=0.01, distance_transformation=None, distance_to_similarity=None):
 		'''
 		Compute the affinities from landmarks to all nodes, and from all nodes to landmarks
 		Store it in self.L2all (horizontal: n_landmarks x n_nodes) and self.all2L (vertical: n_nodes x n_landmarks)
@@ -170,8 +172,11 @@ class Landmarks:
 		if self.verbose:
 			print("Compute similarities from all nodes to landmarks...")
 
-		# Shortest-path computation with Dijkstra
-		self.distances_all2L = np.transpose(dijkstra(A.transpose(), indices=self.landmarks))
+		if distance_measure == 'least_cost':
+			# Shortest-path computation with Dijkstra:
+			self.distances_all2L = np.transpose(dijkstra(A.transpose(), indices=self.landmarks))
+		elif distance_measure == 'free_energy':
+			self.distances_all2L = self.free_energy_distances_to(destinations=self.landmarks, beta=beta)
 
 		# Optional distance transformation
 		if distance_transformation != None: 
@@ -200,20 +205,65 @@ class Landmarks:
 
 		return self.similarities_all2L.dot(self.similarities_L2all[:, destinations])
 
-	def habitat_functionalities(self):
+	def habitat_functionalities(self, include_source_qualities=False):
 		'''
 		Compute habitat functionalities of all the pixels as sums of similarities from
 		an origin pixel to all destination pixels, weighted by the destinations' quality values.
 		'''
 		L2all_Q = self.similarities_L2all.dot(self.G.qualities)
 		hf = self.similarities_all2L.dot(L2all_Q)
+		if include_source_qualities == True:
+			hf = self.G.qualities*hf
 		hf[hf == 0] = np.nan
 		return hf
 
-	def harmonic_approximation(self):
+	def harmonic_approximation(self, include_source_qualities=False):
 		all2L_Q = self.similarities_all2L.dot(self.G.qualities[self.landmarks])
+		if include_source_qualities == True:
+			all2L_Q = self.G.qualities*all2L_Q
 		all2L_Q[all2L_Q==0] = np.nan
 		return all2L_Q.tolist()
+
+	def free_energy_distances_to(self, destinations, beta, min_affinity=0):
+		N = self.G.N
+		A = self.G.A.copy() # make a copy of the affinity matrix
+		
+		# Construct cost matrix from affinity matrix:
+		C = self.G.A.copy() 
+		impossible_steps = A.data < min_affinity # transformation of affinities to cost
+		C.data[:] = 1. / A.data
+		C.data[impossible_steps] = np.inf
+
+		# Construct P_ref:
+		degs = A.sum(axis=1).A.flatten()
+		inv_degs = degs
+		inv_degs[degs>0] = 1/inv_degs[degs>0]
+		D_inv = ss.spdiags(inv_degs, 0, N, N)
+		P_ref = D_inv.dot(A)
+
+		# Compute W:
+		expbC = -beta*C
+		expbC.data[:] = np.exp(expbC.data)
+		W = P_ref.multiply(expbC)
+		
+		I = ss.eye(N)
+		I_W = I-W
+		distances = np.zeros((N,len(destinations)))
+
+		for i,t in enumerate(destinations):
+			e_t = np.zeros(N); e_t[t] = 1
+			z_t = ss.linalg.spsolve(I_W, e_t)
+			unconnected_nodes = z_t==0
+			z_t[unconnected_nodes] = z_t[t] # This will prevent warning from log(0)
+
+
+			distances[:,i] = -1/beta * np.log(z_t/z_t[t])
+			distances[unconnected_nodes,i] = np.inf
+		
+		return distances
+
+
+
 
 	#  def closeness_centrality(self, weight=None):
 	# 	'''
