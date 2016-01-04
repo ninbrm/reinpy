@@ -8,4 +8,4 @@ Write paper for an ecological journal "Integrating the effects of habitat loss a
 **STEPS:**
 
 1. Finish affinity script (using GRASS)
-2. Create artificial landscapes
+2. Create artificial landscapes: using the sum of two bivariate normal distributions and by varying the volume, mean, variance and covariance of each distribution we can generate a whole range of fragmentation scenarios. We can go from a circle to a oblong and star shaped range. In addition, we can go from two connected range to two disconnected ranges (and vary the relative size of each range).   
