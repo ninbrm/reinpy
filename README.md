@@ -7,7 +7,7 @@ jupyter notebook
 
 view [here](http://nbviewer.ipython.org/)
 
-[home folder](http://localhost:8888/tree/My%20Documents/E/Work/Projects/RenewableReindeer/reindeers_git/p_analysis)
+[home folder](http://localhost:8888/tree/OneDrive%20-%20NINA/E/Work/Projects/RenewableReindeer/python_notebooks)
 
 
 
