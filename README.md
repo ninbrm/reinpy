@@ -15,6 +15,7 @@ Green Infrastructures:
 
 [Moose](http://localhost:8888/tree/OneDrive%20-%20NINA/E/Work/Projects/ConScape/Moose_connectivity/scripts)
 
+[Infrastructure Index](http://localhost:8888/tree/OneDrive%20-%20NINA/E/Work/Projects/ConScape/Infrastructure_Index)
 
 # parallel
 ## Installing IPython Parallel
